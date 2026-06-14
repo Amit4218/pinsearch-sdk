@@ -3,7 +3,7 @@ from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass
 from functools import lru_cache
-from pathlib import Path
+from importlib.resources import files
 from typing import Dict
 
 
@@ -84,7 +84,7 @@ class PinSearch:
     """
 
     def __init__(self):
-        self._DATA_FILE = Path("pincode_data.json")
+        self._DATA_FILE = files("pinsearch_sdk").joinpath("pincode_data.json")
 
         # Build indexes
         self._state_index = defaultdict(list)
@@ -100,7 +100,7 @@ class PinSearch:
 
     @lru_cache(maxsize=1)
     def _read_pincode_data(self) -> Dict:
-        with open(self._DATA_FILE, encoding="utf-8") as f:
+        with self._DATA_FILE.open("r", encoding="utf-8") as f:
             return json.load(f)
 
     def _build_indexes(self) -> None:
@@ -111,7 +111,7 @@ class PinSearch:
 
             self._district_index[record["district"].upper()].append(record)
 
-    def get(self, pincode: int) -> PincodeData | None:
+    def get(self, pincode: str | int) -> PincodeData | None:
         """search using a pincode\n
         Example:
                 >>> PinSearch().get("000000")
