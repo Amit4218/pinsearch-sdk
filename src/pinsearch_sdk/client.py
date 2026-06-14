@@ -4,6 +4,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from functools import lru_cache
 from importlib.resources import files
+from pathlib import Path
 from typing import Dict
 
 
@@ -39,6 +40,11 @@ class PinSearch:
     """
     Search and retrieve Indian postal information using PIN codes,
     state names, and district names.
+
+    PARAMETERS:
+    pincode_file : Path | None, optional
+        Path to the pincode data file. If not provided, the default
+        data file included with the package will be used.
 
     Examples
     --------
@@ -83,8 +89,11 @@ class PinSearch:
         Internal district-based lookup index.
     """
 
-    def __init__(self):
-        self._DATA_FILE = files("pinsearch_sdk").joinpath("pincode_data.json")
+    def __init__(self, pincode_file: Path | None = None):
+        if pincode_file is not None:
+            self._DATA_FILE = pincode_file
+        else:
+            self._DATA_FILE = files("pinsearch_sdk").joinpath("pincode_data.json")
 
         # Build indexes
         self._state_index = defaultdict(list)
