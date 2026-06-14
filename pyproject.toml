@@ -1,0 +1,8 @@
+[project]
+name = "pinsearch-sdk"
+version = "0.1.0"
+authors = [{name = "Amit Bhagat", "email" = "amitbhagat621@gmail.com"}]
+description = "search Indian postal information by PIN code, state, or district"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
