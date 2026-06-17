@@ -224,10 +224,10 @@ class DataFileScraper:
                             "district": row[7],
                             "statename": row[8],
                             "latitude": (
-                                float(row[9]) if type(row[9]) is float else None
+                                (float(row[9]) if row[9].lower() != "na" else None),
                             ),
                             "longitude": (
-                                float(row[10]) if type(row[10]) is float else None
+                                float(row[10]) if row[10].lower() != "na" else None
                             ),
                         }
 
@@ -257,7 +257,7 @@ class DataFileScraper:
                 "w",
                 encoding="utf-8",
             ) as fp:
-                json.dump(data, fp, indent=4, ensure_ascii=False)
+                json.dump(data, fp, indent=4, ensure_ascii=False, separators=(",", ":"))
 
             self.logger.info(
                 "Successfully wrote %s records to %s", len(data), self.output_json
