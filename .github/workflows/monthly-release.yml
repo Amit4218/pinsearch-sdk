@@ -1,0 +1,116 @@
+name: Monthly SDK Release
+
+on:
+  schedule:
+    - cron: "0 0 1 * *"
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Generate latest pincode data
+        run: |
+          for i in 1 2 3; do
+            echo "Attempt $i"
+
+            if uv run python cron/pincode_data_updater.py \
+              "${{ secrets.BASE_URL }}" \
+              "${{ secrets.RESOURCE_URL }}" \
+              "${{ secrets.RESOURCE_ORIGIN }}" \
+              "${{ secrets.RESOURCE_ID }}"; then
+              echo "Scraper succeeded"
+              exit 0
+            fi
+
+            echo "Scraper failed"
+
+            if [ "$i" -lt 3 ]; then
+              echo "Retrying in 30 seconds..."
+              sleep 30
+            fi
+          done
+
+          echo "All attempts failed"
+          exit 1
+
+      - name: Verify generated data
+        run: |
+          test -f src/pinsearch_sdk/pincode_data.json
+          test -s src/pinsearch_sdk/pincode_data.json
+
+      - name: Detect data changes
+        id: changed
+        run: |
+          if git diff --quiet src/pinsearch_sdk/pincode_data.json; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Stop if no data changed
+        if: steps.changed.outputs.changed == 'false'
+        run: |
+          echo "No data changes detected. Skipping release."
+
+      - name: Bump package version
+        if: steps.changed.outputs.changed == 'true'
+        run: |
+          uv version --bump patch
+
+      - name: Read version
+        if: steps.changed.outputs.changed == 'true'
+        id: version
+        run: |
+          echo "version=$(uv version --short)" >> $GITHUB_OUTPUT
+
+      - name: Commit updated data and version
+        if: steps.changed.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add pyproject.toml
+          git add src/pinsearch_sdk/pincode_data.json
+
+          git commit -m "release: v${{ steps.version.outputs.version }}"
+          git push
+
+      - name: Create git tag
+        if: steps.changed.outputs.changed == 'true'
+        run: |
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
+
+      - name: Build package
+        if: steps.changed.outputs.changed == 'true'
+        run: |
+          uv build
+
+      - name: Publish to PyPI
+        if: steps.changed.outputs.changed == 'true'
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          uv publish
