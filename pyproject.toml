@@ -4,12 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pinsearch-sdk"
-version = "0.1.3"
+version = "0.1.4"
 authors = [{name = "Amit Bhagat", email = "amitbhagat621@gmail.com"}]
 description = "search Indian postal information by PIN code, state, or district"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "ddddocr>=1.6.1",
+    "requests>=2.34.2",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
